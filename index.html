@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>光谱比色工具-ZY、LP</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --secondary: #6b8cbc;
+            --accent: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --curve-bg: #f0f7ff;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 15px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .logo {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            margin-top: 8px;
+            padding-top: 10px;
+        }
+        
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+            padding: 0 10px;
+            flex-wrap: wrap;
+        }
+        
+        .step {
+            flex: 1;
+            min-width: 80px;
+            text-align: center;
+            padding: 8px 5px;
+            position: relative;
+            font-weight: bold;
+            opacity: 0.6;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+        
+        .step.active {
+            opacity: 1;
+            color: var(--primary);
+        }
+        
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 70%;
+            height: 3px;
+            background: #ddd;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+        
+        .step:last-child::after {
+            display: none;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            border-radius: 50%;
+            background: #ddd;
+            color: white;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 2;
+            font-size: 0.85rem;
+        }
+        
+        .step.active .step-number {
+            background: var(--primary);
+        }
+        
+        .step-content {
+            padding: 15px;
+            display: none;
+        }
+        
+        .step-content.active {
+            display: block;
+        }
+        
+        .btn-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: center;
+            gap: 6px;
+            min-width: 150px;
+            flex: 1;
+            max-width: 100%;
+        }
+        
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn i {
+            font-size: 1.1em;
+        }
+        
+        .btn-accent {
+            background: var(--accent);
+        }
+        
+        .btn-accent:hover {
+            background: #c0392b;
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-info {
+            background: var(--info);
+        }
+        
+        .btn-info:hover {
+            background: #138496;
+        }
+        
+        .preview-container {
+            position: relative;
+            width: 100%;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        #imagePreview, #sampleImagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            display: none;
+            object-fit: contain;
+            background: #f0f0f0;
+        }
+        
+        .color-preview {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .color-box {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            font-size: 0.8rem;
+        }
+        
+        .result-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .result-value {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.1em;
+        }
+        
+        .calibration-points {
+            margin: 12px 0;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .point-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            background: #f9f9f9;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .point-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="number"]:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        }
+        
+        .chart-container {
+            height: 220px;
+            margin-top: 15px;
+            background: var(--curve-bg);
+            border-radius: 8px;
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .results-section {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 8px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+        
+        .instructions ul {
+            padding-left: 18px;
+        }
+        
+        .instructions li {
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .image-container {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            margin: 0 auto;
+            touch-action: none;
+        }
+        
+        .selection-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+            z-index: 10;
+            touch-action: none;
+        }
+        
+        .selection-tools {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .selection-btn {
+            background: var(--info);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.3s;
+        }
+        
+        .selection-btn:hover {
+            background: #138496;
+        }
+        
+        .selection-btn.reset {
+            background: var(--accent);
+        }
+        
+        .selection-btn.reset:hover {
+            background: #c0392b;
+        }
+        
+        .r-squared-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 0 4px 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .r-squared-warning i {
+            color: #ffc107;
+            font-size: 1.3em;
+        }
+        
+        .negative-concentration-warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 0 4px 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .negative-concentration-warning i {
+            color: #dc3545;
+            font-size: 1.3em;
+        }
+        
+        .preset-curves {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .preset-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preset-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+        }
+        
+        .preset-card.selected {
+            background: #e3f2fd;
+            border-color: var(--primary);
+        }
+        
+        .preset-card h4 {
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1rem;
+        }
+        
+        .preset-card p {
+            margin: 4px 0;
+            font-size: 0.9rem;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            padding: 0 15px 15px;
+            gap: 10px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #4a6fa5;
+            border-radius: 12px;
+            padding: 30px 15px;
+            text-align: center;
+            background: rgba(74, 111, 165, 0.05);
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover, .upload-area.drag-over {
+            background: rgba(74, 111, 165, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .upload-area .upload-icon {
+            font-size: 40px;
+            color: #4a6fa5;
+            margin-bottom: 10px;
+        }
+        
+        .upload-area h3 {
+            margin-bottom: 8px;
+            color: #4a6fa5;
+            font-size: 1.1rem;
+        }
+        
+        .upload-area p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            background: #f8d7da;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 8px;
+            display: none;
+            font-size: 0.9rem;
+        }
+        
+        .success-message {
+            color: #28a745;
+            background: #d4edda;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 8px;
+            display: none;
+            font-size: 0.9rem;
+        }
+        
+        .batch-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            background: #f9f9f9;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .concentration {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+        
+        .analysis-section {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            color: var(--primary);
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #777;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .modal-btn.primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .modal-btn.secondary {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        .result-chart {
+            height: 180px;
+            margin-top: 15px;
+        }
+        
+        .result-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+        
+        .summary-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .summary-card h4 {
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .summary-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .curve-info {
+            background: var(--curve-bg);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+        }
+        
+        .touch-hint {
+            background: #e3f2fd;
+            border-radius: 20px;
+            padding: 8px 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            margin: 10px 0;
+        }
+        
+        .gray-formula {
+            background: #e8f5e9;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            font-family: monospace;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        /* 移动设备优化 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                border-radius: 12px;
+            }
+            
+            header {
+                padding: 12px;
+            }
+            
+            h1 {
+                font-size: 1.3rem;
+                padding-top: 15px;
+            }
+            
+            .step {
+                min-width: 70px;
+                font-size: 0.8rem;
+                padding: 6px 3px;
+            }
+            
+            .step::after {
+                top: 18px;
+            }
+            
+            .step-number {
+                width: 22px;
+                height: 22px;
+                line-height: 22px;
+                font-size: 0.8rem;
+            }
+            
+            .btn {
+                min-width: 100%;
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .logo {
+                top: 12px;
+                left: 12px;
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .nav-buttons .btn {
+                width: 100%;
+            }
+            
+            .preset-curves {
+                grid-template-columns: 1fr;
+            }
+            
+            .color-box {
+                width: 65px;
+                height: 65px;
+                font-size: 0.75rem;
+            }
+            
+            .result-item {
+                font-size: 0.95rem;
+            }
+            
+            .modal-content {
+                padding: 15px;
+            }
+            
+            .summary-card {
+                padding: 10px;
+            }
+            
+            .summary-value {
+                font-size: 1.3rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            
+            .subtitle {
+                font-size: 0.8rem;
+            }
+            
+            .step {
+                min-width: 60px;
+                font-size: 0.75rem;
+            }
+            
+            .step::after {
+                top: 16px;
+            }
+            
+            .color-box {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .instructions {
+                padding: 10px;
+                font-size: 0.85rem;
+            }
+            
+            .instructions li {
+                font-size: 0.85rem;
+            }
+            
+            .upload-area {
+                padding: 20px 10px;
+            }
+            
+            .upload-area h3 {
+                font-size: 1rem;
+            }
+            
+            .gray-formula {
+                font-size: 0.9rem;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-flask"></i>
+            </div>
+            <h1>光谱比色工具-ZY、LP</h1>
+            <p class="subtitle">基于光谱法的浓度分析工具</p>
+        </header>
+        
+        <div class="step-indicator">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <div>选择曲线</div>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div>拟合曲线</div>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <div>样品分析</div>
+            </div>
+            <div class="step" id="step4">
+                <div class="step-number">4</div>
+                <div>结果导出</div>
+            </div>
+        </div>
+        
+        <!-- 步骤1：选择曲线 -->
+        <div class="step-content active" id="step1-content">
+            <div class="instructions">
+                <h3><i class="fas fa-lightbulb"></i> 使用说明</h3>
+                <ul>
+                    <li><strong>预设曲线</strong>：使用系统内置的标准曲线</li>
+                    <li><strong>自定义曲线</strong>：使用标准品创建自己的校准曲线</li>
+                    <li>选择预设曲线可跳过标准品采集步骤</li>
+                    <li>选择自定义曲线需要采集标准品图像</li>
+                </ul>
+            </div>
+            
+            <h2 class="section-title"><i class="fas fa-ruler-combined"></i> 选择标准曲线类型</h2>
+            
+            <div class="preset-curves">
+                <div class="preset-card selected" id="presetCurveBtn">
+                    <h4><i class="fas fa-chart-line"></i> 预设标准曲线</h4>
+                    <p>使用系统内置的标准曲线</p>
+                    <p>适用于快速分析</p>
+                    <p>无需标准品校准</p>
+                </div>
+                <div class="preset-card" id="customCurveBtn">
+                    <h4><i class="fas fa-sliders-h"></i> 自定义曲线</h4>
+                    <p>使用标准品创建校准曲线</p>
+                    <p>适用于精确分析</p>
+                    <p>需要标准品图像</p>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="curvePreset"><i class="fas fa-prescription-bottle"></i> 选择预设曲线:</label>
+                <select id="curvePreset">
+                    <option value="curve1">标准曲线1 (标准实验条件)</option>
+                    <option value="curve2">标准曲线2 (pH 7.0, 25°C)</option>
+                    <option value="curve3">标准曲线3 (pH 6.5, 30°C)</option>
+                    <option value="curve4">标准曲线4 (高灵敏度)</option>
+                </select>
+            </div>
+            
+            <div class="btn-container">
+                <button class="btn btn-success" id="startAnalysisBtn">
+                    <i class="fas fa-play"></i> 开始分析
+                </button>
+            </div>
+        </div>
+        
+        <!-- 步骤2：拟合标准曲线 -->
+        <div class="step-content" id="step2-content">
+            <h2 class="section-title"><i class="fas fa-camera"></i> 拟合标准曲线</h2>
+            
+            <div class="instructions">
+                <h3><i class="fas fa-lightbulb"></i> 操作说明</h3>
+                <ul>
+                    <li>上传标准品溶液图像</li>
+                    <li>在图像上选择分析区域</li>
+                    <li>点击"添加为标准品"输入浓度</li>
+                    <li>拟合标准曲线</li>
+                    <li>至少需要2个不同浓度的标准品</li>
+                </ul>
+            </div>
+            
+            <!-- 图像采集部分 -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <h3>点击或拖放标准品图像</h3>
+                <p>支持格式：JPG, PNG, BMP</p>
+                <input type="file" id="fileInput" accept="image/*" style="display:none">
+                <div class="error-message" id="uploadError"></div>
+                <div class="success-message" id="uploadSuccess"></div>
+            </div>
+            
+            <div class="preview-container">
+                <div class="image-container" id="imagePreviewContainer">
+                    <img id="imagePreview" alt="标准品预览">
+                    <canvas id="selectionCanvas" class="selection-canvas"></canvas>
+                </div>
+                
+                <div class="selection-tools">
+                    <button class="selection-btn" id="selectRegionBtn" disabled>
+                        <i class="fas fa-vector-square"></i> 选择区域
+                    </button>
+                    <button class="selection-btn" id="addSampleBtn" disabled>
+                        <i class="fas fa-plus"></i> 添加为标准品
+                    </button>
+                    <button class="selection-btn reset" id="resetSelectionBtn">
+                        <i class="fas fa-redo"></i> 重置选择
+                    </button>
+                </div>
+                
+                <div class="touch-hint">
+                    <i class="fas fa-hand-pointer"></i>
+                    在图像上拖动手指选择区域
+                </div>
+                
+                <div class="result-item" style="margin-top: 12px;">
+                    <span>选择区域大小:</span>
+                    <span class="result-value" id="selectionSize">未选择</span>
+                </div>
+            </div>
+            
+            <div class="gray-formula">
+                <i class="fas fa-calculator"></i> 灰度值计算公式: Gray = (R + G + B) / 3
+            </div>
+            
+            <div class="color-preview">
+                <div class="color-box" id="redBox" style="background: #d32f2f;">
+                    <span>红色(R)</span>
+                    <span class="result-value" id="redValue">-</span>
+                </div>
+                <div class="color-box" id="greenBox" style="background: #388e3c;">
+                    <span>绿色(G)</span>
+                    <span class="result-value" id="greenValue">-</span>
+                </div>
+                <div class="color-box" id="blueBox" style="background: #1976d2;">
+                    <span>蓝色(B)</span>
+                    <span class="result-value" id="blueValue">-</span>
+                </div>
+            </div>
+            
+            <div class="result-item">
+                <span>灰度值:</span>
+                <span class="result-value" id="grayValue">-</span>
+            </div>
+            
+            <!-- 曲线拟合部分 -->
+            <div class="analysis-section">
+                <h2 class="section-title"><i class="fas fa-ruler-combined"></i> 曲线拟合</h2>
+                
+                <div class="calibration-points">
+                    <h3><i class="fas fa-list"></i> 校准点列表:</h3>
+                    <div id="pointsList">暂无校准点</div>
+                </div>
+                
+                <div class="chart-container" id="calibrationChart">
+                    <canvas id="calibrationCanvas"></canvas>
+                </div>
+                
+                <div id="calibrationWarning" class="r-squared-warning" style="display:none">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>标准曲线未拟合</strong>
+                        <p>请添加至少2个不同浓度的校准点以拟合标准曲线</p>
+                    </div>
+                </div>
+                
+                <div id="rSquaredWarning" class="r-squared-warning" style="display:none">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>线性关系不佳警告</strong>
+                        <p>标准曲线的R²值低于0.95，表明线性关系可能不佳。建议检查校准点数据或重新进行实验。</p>
+                    </div>
+                </div>
+                
+                <div class="curve-info" id="curveInfo" style="display: none;">
+                    <div class="result-item">
+                        <span>曲线公式:</span>
+                        <span class="result-value" id="curveFormula">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span>拟合度(R²):</span>
+                        <span class="result-value" id="curveRSquared">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步骤2导航按钮 -->
+            <div class="nav-buttons">
+                <button class="btn" id="step2-prev-btn">
+                    <i class="fas fa-arrow-left"></i> 上一步
+                </button>
+                <button class="btn btn-success" id="step2-next-btn" disabled>
+                    下一步 <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 步骤3：样品分析 -->
+        <div class="step-content" id="step3-content">
+            <h2 class="section-title"><i class="fas fa-camera"></i> 样品采集与分析</h2>
+            
+            <div class="instructions">
+                <h3><i class="fas fa-lightbulb"></i> 操作说明</h3>
+                <ul>
+                    <li>上传待测样品图像</li>
+                    <li>在图像上选择样品区域</li>
+                    <li>系统将自动计算浓度</li>
+                    <li>可添加多个区域进行分析</li>
+                </ul>
+            </div>
+            
+            <div class="upload-area" id="sampleUploadArea">
+                <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                <h3>点击或拖放样品图像</h3>
+                <p>支持格式：JPG, PNG, BMP</p>
+                <input type="file" id="sampleFileInput" accept="image/*" style="display:none">
+                <div class="error-message" id="sampleUploadError"></div>
+                <div class="success-message" id="sampleUploadSuccess"></div>
+            </div>
+            
+            <div class="preview-container">
+                <div class="image-container" id="samplePreviewContainer">
+                    <img id="sampleImagePreview" alt="样品预览">
+                    <canvas id="sampleSelectionCanvas" class="selection-canvas"></canvas>
+                </div>
+                
+                <div class="touch-hint">
+                    <i class="fas fa-hand-pointer"></i>
+                    在图像上拖动手指选择区域
+                </div>
+                
+                <div class="selection-tools">
+                    <button class="selection-btn" id="selectSampleRegionBtn" disabled>
+                        <i class="fas fa-vector-square"></i> 选择区域
+                    </button>
+                    <button class="selection-btn" id="addSampleRegionBtn" disabled>
+                        <i class="fas fa-plus"></i> 添加为样品
+                    </button>
+                    <button class="selection-btn reset" id="resetSampleSelectionBtn">
+                        <i class="fas fa-redo"></i> 重置选择
+                    </button>
+                </div>
+            </div>
+            
+            <div class="gray-formula">
+                <i class="fas fa-calculator"></i> 灰度值计算公式: Gray = (R + G + B) / 3
+            </div>
+            
+            <!-- 步骤3导航按钮 -->
+            <div class="nav-buttons">
+                <button class="btn" id="step3-prev-btn">
+                    <i class="fas fa-arrow-left"></i> 上一步
+                </button>
+                <button class="btn btn-success" id="step3-next-btn" disabled>
+                    下一步 <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 步骤4：结果导出 -->
+        <div class="step-content" id="step4-content">
+            <h2 class="section-title"><i class="fas fa-file-medical-alt"></i> 分析结果</h2>
+            
+            <div class="results-section">
+                <div id="negativeConcentrationWarning" class="negative-concentration-warning" style="display:none">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>
+                        <strong>浓度异常警告</strong>
+                        <p>计算出的浓度为负值，这可能是由于校准曲线不适用于当前样品或分析区域选择不当。</p>
+                    </div>
+                </div>
+                
+                <div class="curve-info">
+                    <div class="result-item">
+                        <span>当前使用曲线:</span>
+                        <span class="result-value" id="curveName">标准曲线1</span>
+                    </div>
+                    <div class="result-item">
+                        <span>曲线公式:</span>
+                        <span class="result-value" id="formulaResult">浓度 = -0.025 × 灰度值 + 15.2</span>
+                    </div>
+                    <div class="result-item">
+                        <span>拟合度(R²):</span>
+                        <span class="result-value" id="rSquaredResult">0.987</span>
+                    </div>
+                    <div class="result-item">
+                        <span>灰度计算公式:</span>
+                        <span class="result-value" id="grayFormula">Gray = (R + G + B) / 3</span>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 12px 0 8px;"><i class="fas fa-map-marked-alt"></i> 区域分析结果</h3>
+                <div class="batch-results" id="batchResults">
+                    <!-- 结果将由JavaScript动态生成 -->
+                </div>
+                
+                <div class="result-chart" id="resultChart">
+                    <canvas id="concentrationChart"></canvas>
+                </div>
+                
+                <div class="result-summary">
+                    <div class="summary-card">
+                        <h4>平均浓度</h4>
+                        <div class="summary-value" id="avgConcentration">0.00</div>
+                        <div class="summary-label">μM</div>
+                    </div>
+                    <div class="summary-card">
+                        <h4>最高浓度</h4>
+                        <div class="summary-value" id="maxConcentration">0.00</div>
+                        <div class="summary-label">μM</div>
+                    </div>
+                    <div class="summary-card">
+                        <h4>最低浓度</h4>
+                        <div class="summary-value" id="minConcentration">0.00</div>
+                        <div class="summary-label">μM</div>
+                    </div>
+                    <div class="summary-card">
+                        <h4>样品数量</h4>
+                        <div class="summary-value" id="sampleCount">0</div>
+                        <div class="summary-label">个区域</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="btn-container">
+                <button class="btn btn-success" id="exportTextBtn">
+                    <i class="fas fa-download"></i> 导出文字报告
+                </button>
+                <button class="btn btn-info" id="newAnalysisBtn">
+                    <i class="fas fa-redo"></i> 新的分析
+                </button>
+            </div>
+            
+            <!-- 步骤4导航按钮 -->
+            <div class="nav-buttons">
+                <button class="btn" id="step4-prev-btn">
+                    <i class="fas fa-arrow-left"></i> 上一步
+                </button>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2025 光谱比色分析工具</p>
+        </footer>
+    </div>
+
+    <!-- 浓度输入模态框 -->
+    <div class="modal" id="concentrationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">输入浓度值</h3>
+                <button class="close-modal" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="concentrationInput"><i class="fas fa-flask"></i> 浓度 (μM):</label>
+                <input type="number" id="concentrationInput" min="0" step="0.1" placeholder="输入已知浓度">
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="cancelBtn">取消</button>
+                <button class="modal-btn primary" id="confirmBtn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化变量
+        const steps = document.querySelectorAll('.step');
+        const stepContents = document.querySelectorAll('.step-content');
+        let currentStep = 0;
+        let curveType = 'preset'; 
+        let selectedRegion = null;
+        let calibrationChart = null;
+        let concentrationChart = null;
+        let calibrationPoints = [];
+        let sampleResults = [];
+        let currentCurve = {
+            name: "标准曲线1",
+            formula: "浓度 = -0.025 × 灰度值 + 15.2",
+            rSquared: 0.987,
+            slope: -0.025,
+            intercept: 15.2,
+            grayFormula: "Gray = (R + G + B) / 3"
+        };
+        
+        // 更新步骤显示
+        function updateStepDisplay() {
+            steps.forEach(step => step.classList.remove('active'));
+            stepContents.forEach(content => content.classList.remove('active'));
+            
+            steps[currentStep].classList.add('active');
+            stepContents[currentStep].classList.add('active');
+            
+            if (currentStep === 1) {
+                navButtons.next[1].disabled = calibrationPoints.length < 2;
+                document.getElementById('calibrationWarning').style.display = calibrationPoints.length < 2 ? 'flex' : 'none';
+            } else if (currentStep === 2) {
+                navButtons.next[2].disabled = sampleResults.length === 0;
+            } else if (currentStep === 3) {
+                updateResultsPage();
+            }
+        }
+        
+        // 更新结果页面
+        function updateResultsPage() {
+            document.getElementById('curveName').textContent = currentCurve.name;
+            document.getElementById('formulaResult').textContent = currentCurve.formula;
+            document.getElementById('rSquaredResult').textContent = currentCurve.rSquared.toFixed(3);
+            document.getElementById('grayFormula').textContent = currentCurve.grayFormula;
+            
+            const batchResults = document.getElementById('batchResults');
+            batchResults.innerHTML = '';
+            
+            if (sampleResults.length === 0) {
+                batchResults.innerHTML = '<div class="batch-item"><div>暂无样品分析结果</div></div>';
+                return;
+            }
+            
+            sampleResults.forEach((result, index) => {
+                const batchItem = document.createElement('div');
+                batchItem.className = 'batch-item';
+                batchItem.innerHTML = `
+                    <div>
+                        <strong>样品区域 ${index + 1}</strong>
+                        <div>RGB: ${result.rgb.join(', ')} | 灰度: ${result.gray}</div>
+                    </div>
+                    <div class="concentration">
+                        ${result.concentration.toFixed(2)} μM
+                    </div>
+                `;
+                batchResults.appendChild(batchItem);
+            });
+            
+            const concentrations = sampleResults.map(r => r.concentration);
+            const maxConc = Math.max(...concentrations);
+            const minConc = Math.min(...concentrations);
+            const avgConc = concentrations.reduce((a, b) => a + b, 0) / concentrations.length;
+            
+            document.getElementById('avgConcentration').textContent = avgConc.toFixed(2);
+            document.getElementById('maxConcentration').textContent = maxConc.toFixed(2);
+            document.getElementById('minConcentration').textContent = minConc.toFixed(2);
+            document.getElementById('sampleCount').textContent = sampleResults.length;
+            
+            drawConcentrationChart(concentrations);
+        }
+        
+        // 绘制浓度分布图
+        function drawConcentrationChart(concentrations) {
+            const ctx = document.getElementById('concentrationChart').getContext('2d');
+            
+            if (concentrationChart) {
+                concentrationChart.destroy();
+            }
+            
+            const data = {
+                labels: concentrations.map((_, i) => `样品 ${i+1}`),
+                datasets: [{
+                    label: '浓度 (μM)',
+                    data: concentrations,
+                    backgroundColor: '#4a6fa5',
+                    borderColor: '#4a6fa5',
+                    borderWidth: 1
+                }]
+            };
+            
+            concentrationChart = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '浓度 (μM)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `浓度: ${context.parsed.y.toFixed(2)} μM`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 导航按钮
+        const navButtons = {
+            prev: [
+                document.getElementById('step1-prev-btn'),
+                document.getElementById('step2-prev-btn'),
+                document.getElementById('step3-prev-btn'),
+                document.getElementById('step4-prev-btn')
+            ],
+            next: [
+                null,
+                document.getElementById('step2-next-btn'),
+                document.getElementById('step3-next-btn'),
+                null
+            ]
+        };
+        
+        // 上一步事件
+        navButtons.prev.forEach((btn, index) => {
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    if (index === 2 && curveType === 'preset') {
+                        currentStep = 0;
+                    } else {
+                        currentStep = Math.max(0, index - 1);
+                    }
+                    updateStepDisplay();
+                });
+            }
+        });
+        
+        // 下一步事件
+        navButtons.next.forEach((btn, index) => {
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    currentStep = Math.min(3, index + 1);
+                    updateStepDisplay();
+                });
+            }
+        });
+        
+        // 曲线类型选择
+        document.getElementById('presetCurveBtn').addEventListener('click', () => {
+            curveType = 'preset';
+            document.getElementById('presetCurveBtn').classList.add('selected');
+            document.getElementById('customCurveBtn').classList.remove('selected');
+            document.getElementById('curvePreset').disabled = false;
+        });
+        
+        document.getElementById('customCurveBtn').addEventListener('click', () => {
+            curveType = 'custom';
+            document.getElementById('customCurveBtn').classList.add('selected');
+            document.getElementById('presetCurveBtn').classList.remove('selected');
+            document.getElementById('curvePreset').disabled = true;
+        });
+        
+        document.getElementById('startAnalysisBtn').addEventListener('click', () => {
+            currentStep = curveType === 'preset' ? 2 : 1;
+            updateStepDisplay();
+        });
+        
+        document.getElementById('newAnalysisBtn').addEventListener('click', () => {
+            calibrationPoints = [];
+            sampleResults = [];
+            document.getElementById('pointsList').innerHTML = '暂无校准点';
+            resetSelection('standard');
+            resetSelection('sample');
+            currentStep = 0;
+            updateStepDisplay();
+        });
+        
+        // 区域选择功能
+        function initImageSelection() {
+            const standardCanvas = document.getElementById('selectionCanvas');
+            const sampleCanvas = document.getElementById('sampleSelectionCanvas');
+            let startX, startY, endX, endY;
+            let selectionActive = false;
+            
+            document.getElementById('selectRegionBtn').addEventListener('click', () => {
+                selectionActive = true;
+                standardCanvas.style.cursor = 'crosshair';
+                document.getElementById('selectionSize').textContent = "请选择区域...";
+            });
+            
+            document.getElementById('resetSelectionBtn').addEventListener('click', () => {
+                resetSelection('standard');
+            });
+            
+            document.getElementById('selectSampleRegionBtn').addEventListener('click', () => {
+                selectionActive = true;
+                sampleCanvas.style.cursor = 'crosshair';
+                document.getElementById('selectionSize').textContent = "请选择区域...";
+            });
+            
+            document.getElementById('resetSampleSelectionBtn').addEventListener('click', () => {
+                resetSelection('sample');
+            });
+            
+            [standardCanvas, sampleCanvas].forEach(canvas => {
+                canvas.addEventListener('mousedown', startSelection);
+                canvas.addEventListener('mousemove', drawSelection);
+                canvas.addEventListener('mouseup', endSelection);
+                
+                canvas.addEventListener('touchstart', handleTouchStart);
+                canvas.addEventListener('touchmove', handleTouchMove);
+                canvas.addEventListener('touchend', handleTouchEnd);
+            });
+            
+            function startSelection(e) {
+                if (!selectionActive) return;
+                
+                const canvas = e.currentTarget;
+                const rect = canvas.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+                
+                endX = startX;
+                endY = startY;
+                
+                drawRect(canvas);
+            }
+            
+            function drawSelection(e) {
+                if (!selectionActive || startX === undefined) return;
+                
+                const canvas = e.currentTarget;
+                const rect = canvas.getBoundingClientRect();
+                endX = e.clientX - rect.left;
+                endY = e.clientY - rect.top;
+                
+                drawRect(canvas);
+            }
+            
+            function endSelection() {
+                if (!selectionActive || startX === undefined) return;
+                finalizeSelection();
+            }
+            
+            function handleTouchStart(e) {
+                if (!selectionActive) return;
+                e.preventDefault();
+                
+                const canvas = e.currentTarget;
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                startX = touch.clientX - rect.left;
+                startY = touch.clientY - rect.top;
+                
+                endX = startX;
+                endY = startY;
+                
+                drawRect(canvas);
+            }
+            
+            function handleTouchMove(e) {
+                if (!selectionActive || startX === undefined) return;
+                e.preventDefault();
+                
+                const canvas = e.currentTarget;
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                endX = touch.clientX - rect.left;
+                endY = touch.clientY - rect.top;
+                
+                drawRect(canvas);
+            }
+            
+            function handleTouchEnd(e) {
+                if (!selectionActive || startX === undefined) return;
+                e.preventDefault();
+                finalizeSelection();
+            }
+            
+            function finalizeSelection() {
+                const width = Math.abs(endX - startX);
+                const height = Math.abs(endY - startY);
+                
+                if (width > 10 && height > 10) {
+                    document.getElementById('selectionSize').textContent = `${Math.round(width)} × ${Math.round(height)} 像素`;
+                    selectedRegion = {
+                        x: Math.min(startX, endX),
+                        y: Math.min(startY, endY),
+                        width: width,
+                        height: height
+                    };
+                    
+                    if (currentStep === 1) {
+                        document.getElementById('addSampleBtn').disabled = false;
+                    } else if (currentStep === 2) {
+                        document.getElementById('addSampleRegionBtn').disabled = false;
+                    }
+                } else {
+                    document.getElementById('selectionSize').textContent = "区域太小，请重新选择";
+                }
+                
+                selectionActive = false;
+            }
+            
+            function drawRect(canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                if (startX === undefined || endX === undefined) return;
+                
+                const width = endX - startX;
+                const height = endY - startY;
+                
+                ctx.strokeStyle = currentStep === 1 ? '#e74c3c' : '#4a6fa5';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(startX, startY, width, height);
+                
+                ctx.fillStyle = currentStep === 1 ? '#e74c3c' : '#4a6fa5';
+                ctx.font = '12px Arial';
+                ctx.fillText(`${Math.abs(Math.round(width))}×${Math.abs(Math.round(height))}`, startX + 5, startY - 5);
+            }
+        }
+        
+        // 重置选择
+        function resetSelection(type) {
+            const canvas = type === 'standard' ? 
+                document.getElementById('selectionCanvas') : 
+                document.getElementById('sampleSelectionCanvas');
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            selectedRegion = null;
+            document.getElementById('selectionSize').textContent = "未选择";
+            
+            if (type === 'standard') {
+                document.getElementById('addSampleBtn').disabled = true;
+            } else {
+                document.getElementById('addSampleRegionBtn').disabled = true;
+            }
+        }
+        
+        // 文件上传处理
+        function initFileUpload() {
+            function handleFileUpload(uploadArea, fileInput, previewElement, canvasElement, errorElement, successElement) {
+                uploadArea.addEventListener('click', () => fileInput.click());
+                
+                fileInput.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        processFile(this.files[0], previewElement, canvasElement, errorElement, successElement);
+                    }
+                });
+                
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('drag-over');
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('drag-over');
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('drag-over');
+                    
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        fileInput.files = e.dataTransfer.files;
+                        processFile(e.dataTransfer.files[0], previewElement, canvasElement, errorElement, successElement);
+                    }
+                });
+            }
+            
+            function processFile(file, previewElement, canvasElement, errorElement, successElement) {
+                const validTypes = ['image/jpeg', 'image/png', 'image/bmp'];
+                const maxSize = 10 * 1024 * 1024;
+                
+                if (!validTypes.includes(file.type)) {
+                    errorElement.textContent = '错误：仅支持 JPG, PNG 或 BMP 格式的图片';
+                    errorElement.style.display = 'block';
+                    successElement.style.display = 'none';
+                    return;
+                }
+                
+                if (file.size > maxSize) {
+                    errorElement.textContent = '错误：图片大小不能超过 10MB';
+                    errorElement.style.display = 'block';
+                    successElement.style.display = 'none';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewElement.src = e.target.result;
+                    previewElement.style.display = 'block';
+                    
+                    previewElement.onload = function() {
+                        canvasElement.width = previewElement.width;
+                        canvasElement.height = previewElement.height;
+                        const ctx = canvasElement.getContext('2d');
+                        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                        
+                        // 启用选择按钮
+                        const selectBtn = currentStep === 1 ? 
+                            document.getElementById('selectRegionBtn') : 
+                            document.getElementById('selectSampleRegionBtn');
+                        selectBtn.disabled = false;
+                    };
+                    
+                    errorElement.style.display = 'none';
+                    successElement.textContent = '图片上传成功！';
+                    successElement.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            handleFileUpload(
+                document.getElementById('uploadArea'),
+                document.getElementById('fileInput'),
+                document.getElementById('imagePreview'),
+                document.getElementById('selectionCanvas'),
+                document.getElementById('uploadError'),
+                document.getElementById('uploadSuccess')
+            );
+            
+            handleFileUpload(
+                document.getElementById('sampleUploadArea'),
+                document.getElementById('sampleFileInput'),
+                document.getElementById('sampleImagePreview'),
+                document.getElementById('sampleSelectionCanvas'),
+                document.getElementById('sampleUploadError'),
+                document.getElementById('sampleUploadSuccess')
+            );
+        }
+        
+        // 分析功能
+        function getAverageColor(image, x, y, width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            let r = 0, g = 0, b = 0;
+            const count = width * height;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                r += data[i];
+                g += data[i+1];
+                b += data[i+2];
+            }
+            
+            return {
+                r: Math.floor(r / count),
+                g: Math.floor(g / count),
+                b: Math.floor(b / count),
+                gray: Math.floor((r + g + b) / (3 * count))
+            };
+        }
+        
+        document.getElementById('addSampleBtn').addEventListener('click', function() {
+            const image = document.getElementById('imagePreview');
+            if (!selectedRegion || !image.complete) {
+                alert('请先选择区域并确保图像已加载');
+                return;
+            }
+            
+            const color = getAverageColor(
+                image, 
+                selectedRegion.x, 
+                selectedRegion.y, 
+                selectedRegion.width, 
+                selectedRegion.height
+            );
+            
+            document.getElementById('redValue').textContent = color.r;
+            document.getElementById('greenValue').textContent = color.g;
+            document.getElementById('blueValue').textContent = color.b;
+            document.getElementById('grayValue').textContent = color.gray;
+            
+            document.getElementById('redBox').style.backgroundColor = `rgb(${color.r}, 0, 0)`;
+            document.getElementById('greenBox').style.backgroundColor = `rgb(0, ${color.g}, 0)`;
+            document.getElementById('blueBox').style.backgroundColor = `rgb(0, 0, ${color.b})`;
+            
+            openConcentrationModal();
+        });
+        
+        // 浓度输入模态框
+        const concentrationModal = document.getElementById('concentrationModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const concentrationInput = document.getElementById('concentrationInput');
+        
+        function openConcentrationModal() {
+            concentrationInput.value = '';
+            concentrationModal.style.display = 'flex';
+            concentrationInput.focus();
+        }
+        
+        function closeConcentrationModal() {
+            concentrationModal.style.display = 'none';
+        }
+        
+        closeModalBtn.addEventListener('click', closeConcentrationModal);
+        cancelBtn.addEventListener('click', closeConcentrationModal);
+        
+        confirmBtn.addEventListener('click', function() {
+            const concentration = parseFloat(concentrationInput.value);
+            if (!isNaN(concentration)) {
+                const gray = document.getElementById('grayValue').textContent;
+                const pointsList = document.getElementById('pointsList');
+                
+                if (pointsList.innerHTML === '暂无校准点') {
+                    pointsList.innerHTML = '';
+                }
+                
+                const pointItem = document.createElement('div');
+                pointItem.className = 'point-item';
+                pointItem.innerHTML = `
+                    <span>点 ${pointsList.children.length + 1}:</span>
+                    <span>${concentration.toFixed(2)} μM → 灰度值 ${gray}</span>
+                `;
+                pointsList.appendChild(pointItem);
+                
+                calibrationPoints.push({
+                    concentration: concentration,
+                    gray: parseInt(gray)
+                });
+                
+                if (calibrationPoints.length >= 2) {
+                    fitCalibrationCurve();
+                    navButtons.next[1].disabled = false;
+                    document.getElementById('calibrationWarning').style.display = 'none';
+                } else {
+                    document.getElementById('calibrationWarning').style.display = 'flex';
+                }
+                
+                resetSelection('standard');
+                closeConcentrationModal();
+            } else {
+                alert('请输入有效的浓度值');
+            }
+        });
+        
+        // 拟合曲线函数
+        function fitCalibrationCurve() {
+            if (calibrationPoints.length < 2) return;
+            
+            const n = calibrationPoints.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            
+            calibrationPoints.forEach(point => {
+                sumX += point.gray;
+                sumY += point.concentration;
+                sumXY += point.gray * point.concentration;
+                sumX2 += point.gray * point.gray;
+            });
+            
+            const denominator = n * sumX2 - sumX * sumX;
+            if (Math.abs(denominator) < 1e-10) {
+                alert('无法拟合曲线：数据点过于集中');
+                return;
+            }
+            
+            const slope = (n * sumXY - sumX * sumY) / denominator;
+            const intercept = (sumY - slope * sumX) / n;
+            
+            let ssr = 0, sst = 0;
+            const meanY = sumY / n;
+            
+            calibrationPoints.forEach(point => {
+                const predicted = slope * point.gray + intercept;
+                ssr += (predicted - meanY) ** 2;
+                sst += (point.concentration - meanY) ** 2;
+            });
+            
+            const rSquared = sst > 0 ? ssr / sst : 1;
+            
+            currentCurve = {
+                name: "自定义曲线",
+                formula: `浓度 = ${slope.toFixed(4)} × 灰度值 ${intercept >= 0 ? '+' : ''} ${intercept.toFixed(4)}`,
+                rSquared: rSquared,
+                slope: slope,
+                intercept: intercept,
+                grayFormula: "Gray = (R + G + B) / 3"
+            };
+            
+            document.getElementById('curveFormula').textContent = currentCurve.formula;
+            document.getElementById('curveRSquared').textContent = rSquared.toFixed(4);
+            document.getElementById('curveInfo').style.display = 'block';
+            
+            drawCalibrationChart(calibrationPoints, slope, intercept);
+            
+            const successMsg = document.createElement('div');
+            successMsg.className = 'success-message';
+            successMsg.textContent = '标准曲线拟合成功！';
+            successMsg.style.display = 'block';
+            document.querySelector('.analysis-section').prepend(successMsg);
+            
+            if (rSquared < 0.95) {
+                document.getElementById('rSquaredWarning').style.display = 'flex';
+            } else {
+                document.getElementById('rSquaredWarning').style.display = 'none';
+            }
+            
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 绘制校准曲线图
+        function drawCalibrationChart(points, slope, intercept) {
+            const ctx = document.getElementById('calibrationCanvas').getContext('2d');
+            
+            if (calibrationChart) {
+                calibrationChart.destroy();
+            }
+            
+            const data = {
+                datasets: [
+                    {
+                        label: '校准点',
+                        data: points.map(p => ({x: p.gray, y: p.concentration})),
+                        backgroundColor: '#e74c3c',
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: '拟合曲线',
+                        data: points.map(p => ({x: p.gray, y: slope * p.gray + intercept})),
+                        backgroundColor: '#4a6fa5',
+                        borderColor: '#4a6fa5',
+                        fill: false,
+                        showLine: true,
+                        pointRadius: 0
+                    }
+                ]
+            };
+            
+            calibrationChart = new Chart(ctx, {
+                type: 'scatter',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '灰度值'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '浓度 (μM)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `浓度: ${context.parsed.y.toFixed(2)} μM, 灰度: ${context.parsed.x}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 样品分析
+        document.getElementById('addSampleRegionBtn').addEventListener('click', function() {
+            const image = document.getElementById('sampleImagePreview');
+            if (!selectedRegion || !image.complete) {
+                alert('请先选择区域并确保图像已加载');
+                return;
+            }
+            
+            const color = getAverageColor(
+                image, 
+                selectedRegion.x, 
+                selectedRegion.y, 
+                selectedRegion.width, 
+                selectedRegion.height
+            );
+            
+            const concentration = currentCurve.slope * color.gray + currentCurve.intercept;
+            
+            sampleResults.push({
+                rgb: [color.r, color.g, color.b],
+                gray: color.gray,
+                concentration: concentration
+            });
+            
+            const successMsg = document.createElement('div');
+            successMsg.className = 'success-message';
+            successMsg.textContent = `样品区域添加成功！浓度: ${concentration.toFixed(2)} μM`;
+            successMsg.style.display = 'block';
+            document.querySelector('#step3-content .preview-container').appendChild(successMsg);
+            
+            setTimeout(() => successMsg.remove(), 3000);
+            resetSelection('sample');
+            navButtons.next[2].disabled = false;
+        });
+        
+        // 导出报告
+        document.getElementById('exportTextBtn').addEventListener('click', function() {
+            let reportContent = `光谱比色分析报告
+生成时间: ${new Date().toLocaleString()}
+
+===== 分析信息 =====
+使用曲线: ${currentCurve.name}
+曲线公式: ${currentCurve.formula}
+灰度计算公式: ${currentCurve.grayFormula}
+拟合度(R²): ${currentCurve.rSquared.toFixed(3)}
+
+===== 样品分析结果 =====
+`;
+            
+            sampleResults.forEach((result, index) => {
+                reportContent += `样品区域 ${index + 1}
+  - RGB值: ${result.rgb.join(', ')}
+  - 灰度值: ${result.gray}
+  - 浓度: ${result.concentration.toFixed(2)} μM\n\n`;
+            });
+            
+            reportContent += `===== 分析总结 =====
+分析区域数量: ${sampleResults.length}`;
+            
+            if (sampleResults.length > 0) {
+                const concentrations = sampleResults.map(r => r.concentration);
+                const maxConc = Math.max(...concentrations);
+                const minConc = Math.min(...concentrations);
+                const avgConc = concentrations.reduce((a, b) => a + b, 0) / concentrations.length;
+                
+                reportContent += `
+最高浓度: ${maxConc.toFixed(2)} μM
+最低浓度: ${minConc.toFixed(2)} μM
+平均浓度: ${avgConc.toFixed(2)} μM
+`;
+            }
+            
+            const blob = new Blob([reportContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `光谱比色分析报告_${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('分析报告已下载！');
+        });
+        
+        // 初始化应用
+        function initApp() {
+            initImageSelection();
+            initFileUpload();
+            updateStepDisplay();
+        }
+        
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
